@@ -19,52 +19,92 @@ def main():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    try:
+        # Create an author
+        cursor.execute("INSERT INTO authors (name) VALUES (?)", (author_name,))
+        author_id = cursor.lastrowid
+        author = Author(id=author_id, name=author_name)
 
-    '''
-        The following is just for testing purposes, 
-        you can modify it to meet the requirements of your implmentation.
-    '''
+        # Create a magazine
+        magazine = Magazine(name=magazine_name, category=magazine_category)
+        magazine.create_magazine(cursor)
 
-    # Create an author
-    cursor.execute('INSERT INTO authors (name) VALUES (?)', (author_name,))
-    author_id = cursor.lastrowid # Use this to fetch the id of the newly created author
+        # Create an article
+        article = Article.create_article(cursor, article_title, article_content, author.id, magazine.id)
 
-    # Create a magazine
-    cursor.execute('INSERT INTO magazines (name, category) VALUES (?,?)', (magazine_name, magazine_category))
-    magazine_id = cursor.lastrowid # Use this to fetch the id of the newly created magazine
+        conn.commit()
 
-    # Create an article
-    cursor.execute('INSERT INTO articles (title, content, author_id, magazine_id) VALUES (?, ?, ?, ?)',
-                   (article_title, article_content, author_id, magazine_id))
+        # Display the created objects
+        print("\nCreated Author:")
+        print(f"ID: {author.id}, Name: {author.name}")
 
-    conn.commit()
+        print("\nCreated Magazine:")
+        print(f"ID: {magazine.id}, Name: {magazine.name}, Category: {magazine.category}")
 
-    # Query the database for inserted records. 
-    # The following fetch functionality should probably be in their respective models
+        print("\nCreated Article:")
+        print(f"ID: {article.id}, Title: {article.title}, Content: {article.content}")
 
-    cursor.execute('SELECT * FROM magazines')
-    magazines = cursor.fetchall()
+        # Additional functionality to showcase object methods
 
-    cursor.execute('SELECT * FROM authors')
-    authors = cursor.fetchall()
+        # Fetch all articles by the author
+        author_articles = author.articles(cursor)
+        if author_articles:
+            print("\nArticles by Author:")
+            for art in author_articles:
+                print(dict(art))  # Convert to dictionary for readability
+        else:
+            print("\nNo articles by this author.")
 
-    cursor.execute('SELECT * FROM articles')
-    articles = cursor.fetchall()
+        # Fetch all magazines the author has contributed to
+        author_magazines = author.magazines(cursor)
+        if author_magazines:
+            print("\nMagazines by Author:")
+            for mag in author_magazines:
+                print(dict(mag))  # Convert to dictionary for readability
+        else:
+            print("\nNo magazines by this author.")
 
-    conn.close()
+        # Fetch all articles in the magazine
+        magazine_articles = magazine.articles(cursor)
+        if magazine_articles:
+            print("\nArticles in Magazine:")
+            for art in magazine_articles:
+                print(dict(art))  # Convert to dictionary for readability
+        else:
+            print("\nNo articles in this magazine.")
 
-    # Display results
-    print("\nMagazines:")
-    for magazine in magazines:
-        print(Magazine(magazine["id"], magazine["name"], magazine["category"]))
+        # Fetch all contributors to the magazine
+        magazine_contributors = magazine.contributors(cursor)
+        if magazine_contributors:
+            print("\nContributors to Magazine:")
+            for cont in magazine_contributors:
+                print(dict(cont))  # Convert to dictionary for readability
+        else:
+            print("\nNo contributors to this magazine.")
 
-    print("\nAuthors:")
-    for author in authors:
-        print(Author(author["id"], author["name"]))
+        # Fetch article titles for the magazine
+        magazine_article_titles = magazine.article_titles(cursor)
+        if magazine_article_titles:
+            print("\nArticle Titles in Magazine:")
+            for title in magazine_article_titles:
+                print(title)
+        else:
+            print("\nNo article titles in this magazine.")
 
-    print("\nArticles:")
-    for article in articles:
-        print(Article(article["id"], article["title"], article["content"], article["author_id"], article["magazine_id"]))
+        # Fetch contributing authors with more than two articles
+        contributing_authors = magazine.contributing_authors(cursor)
+        if contributing_authors:
+            print("\nContributing Authors with more than two articles in Magazine:")
+            for author in contributing_authors:
+                print(dict(author))  # Convert to dictionary for readability
+        else:
+            print("\nNo contributing authors with more than two articles in this magazine.")
+
+    except Exception as e:
+        conn.rollback()
+        print(f"An error occurred: {e}")
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     main()
