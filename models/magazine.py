@@ -150,4 +150,4 @@ class Magazine:
             HAVING article_count > 2
         """, (self._id,))
         authors_data = cursor.fetchall()
-        return authors_data if authors_data else []
+        return authors_data if authors_data else None
